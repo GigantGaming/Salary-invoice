@@ -51,7 +51,7 @@ def generate_invoice():
         payable_days = all_day
         double_shift = T_double_shift//2
         daily_rate = base_salary / total_days
-        final_salary = daily_rate * payable_days
+        final_salary = daily_rate * (weekoffs_count + payable_days)
 
         invoice_data = {
             "employee_name": employee_name,
