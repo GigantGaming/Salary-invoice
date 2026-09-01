@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quick Attendance Entry</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #eceff1; color: #333; }
+        .container { max-width: 650px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin: auto; }
+        h2, h3 { margin-top: 0; color: #1e88e5; margin-bottom: 10px; }
+        .flex-row { display: flex; gap: 15px; margin-bottom: 12px; }
+        .form-group { flex: 1; display: flex; flex-direction: column; }
+        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
+        input, select { padding: 6px 10px; border: 1px solid #cfd8dc; border-radius: 4px; font-size: 14px; }
+        
+        /* 7 Column Calendar Matrix Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; }
+        .grid-header { font-weight: bold; text-align: center; font-size: 12px; color: #78909c; padding-bottom: 4px; text-transform: uppercase; }
+        .day-box { background: white; border: 1px solid #cfd8dc; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .day-label { font-size: 11px; font-weight: bold; margin-bottom: 2px; color: #37474f; }
+        .day-box select { font-size: 12px; padding: 2px; width: 100%; border: none; background: #f1f3f4; font-weight: bold; text-align: center; }
+        
+        button { background: #1e88e5; color: white; border: none; padding: 10px; cursor: pointer; width: 100%; border-radius: 4px; font-size: 15px; font-weight: bold; margin-top: 15px; }
+        button:hover { background: #1565c0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Payroll Control Panel</h2>
+        <form action="/generate-invoice" method="POST">
+            <div class="flex-row">
+                <div class="form-group" style="flex: 2;">
+                    <label>Employee Name</label>
+                    <input type="text" name="employee_name" required placeholder="Rahul Kumar">
+                </div>
+                <div class="form-group">
+                    <label>Base Salary (Rs.)</label>
+                    <input type="number" step="0.01" name="salary" required placeholder="25000">
+                </div>
+            </div>
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>Month</label>
+                    <select name="month" id="monthSelect" onchange="buildCalendar()">
+                        <option value="January">January</option><option value="February">February</option>
+                        <option value="March">March</option><option value="April">April</option>
+                        <option value="May">May</option><option value="June">June</option>
+                        <option value="July">July</option><option value="August">August</option>
+                        <option value="September">September</option><option value="October">October</option>
+                        <option value="November">November</option><option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input type="number" name="year" id="yearInput" value="2026" onchange="buildCalendar()" required>
+                </div>
+            </div>
+
+            <h3>Attendance Roster</h3>
+            <div class="calendar-grid">
+                <!-- Day Headers -->
+                <div class="grid-header">Sun</div><div class="grid-header">Mon</div><div class="grid-header">Tue</div>
+                <div class="grid-header">Wed</div><div class="grid-header">Thu</div><div class="grid-header">Fri</div>
+                <div class="grid-header">Sat</div>
+                
+                <!-- Dynamic Content Container -->
+                <div id="calendarDays" style="display: contents;"></div>
+            </div>
+
+            <button type="submit">Compile & Generate Invoice</button>
+        </form>
+    </div>
+
+    <script>
+        function buildCalendar() {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthStr = document.getElementById('monthSelect').value;
+            const year = parseInt(document.getElementById('yearInput').value);
+            const monthIdx = months.indexOf(monthStr);
+
+            const totalDays = new Date(year, monthIdx + 1, 0).getDate();
+            const firstDayIndex = new Date(year, monthIdx, 1).getDay(); // Day of the week index (0-6)
+
+            const targetContainer = document.getElementById('calendarDays');
+            targetContainer.innerHTML = '';
+
+            // Add blank pads for empty week starts
+            for (let i = 0; i < firstDayIndex; i++) {
+                const blank = document.createElement('div');
+                blank.className = 'day-box';
+                blank.style.background = '#e0e0e0';
+                blank.style.border = 'none';
+                targetContainer.appendChild(blank);
+            }
+
+            // Create interactive functional days
+            for (let day = 1; day <= totalDays; day++) {
+                const currentDayOfWeek = (firstDayIndex + day - 1) % 7;
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-box';
+                
+                // Pre-detect weekend offsets dynamically (Default to W for Sundays)
+                let defaultSelection = "DS";
+                if(currentDayOfWeek === 0) { 
+                    defaultSelection = "W"; 
+                    dayCard.style.background = "#e3f2fd";
+                }
+
+                dayCard.innerHTML = `
+                    <span class="day-label">${day}</span>
+                    <select name="status_${day}">
+                        <option value="DS" ${defaultSelection==='DS'?'selected':''}>Day Shift</option>
+                        <option value="NS" ${defaultSelection==='NS'?'selected':''}>Night Shift</option>
+                        <option value="BS" ${defaultSelection==='BS'?'selected':''}>Double</option>
+                        <option value="A" ${defaultSelection==='A'?'selected':''}>A</option>
+                        <option value="W" ${defaultSelection==='W'?'selected':''}>W</option>
+                    </select>
+                `;
+                targetContainer.appendChild(dayCard);
+            }
+        }
+        window.onload = buildCalendar;
+    </script>
+</body>
+</html>
+  
