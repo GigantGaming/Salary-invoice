@@ -2,124 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Quick Attendance Entry</title>
+    <title>Attendance Invoice - {{ invoice.employee_name }}</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #eceff1; color: #333; }
-        .container { max-width: 650px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin: auto; }
-        h2, h3 { margin-top: 0; color: #1e88e5; margin-bottom: 10px; }
-        .flex-row { display: flex; gap: 15px; margin-bottom: 12px; }
-        .form-group { flex: 1; display: flex; flex-direction: column; }
-        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
-        input, select { padding: 6px 10px; border: 1px solid #cfd8dc; border-radius: 4px; font-size: 14px; }
+        /* Compact layout setup to ensure single-page printing */
+        body { font-family: Arial, sans-serif; margin: 10px; color: #333; font-size: 12px; line-height: 16px; background: #fafafa; }
+        .invoice-box { max-width: 850px; margin: auto; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
         
-        /* 7 Column Calendar Matrix Styles */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; }
-        .grid-header { font-weight: bold; text-align: center; font-size: 12px; color: #78909c; padding-bottom: 4px; text-transform: uppercase; }
-        .day-box { background: white; border: 1px solid #cfd8dc; border-radius: 4px; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .day-label { font-size: 11px; font-weight: bold; margin-bottom: 2px; color: #37474f; }
-        .day-box select { font-size: 12px; padding: 2px; width: 100%; border: none; background: #f1f3f4; font-weight: bold; text-align: center; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; padding-bottom: 4px; margin-bottom: 12px; }
+        .title { font-size: 20px; font-weight: bold; color: #007bff; }
         
-        button { background: #1e88e5; color: white; border: none; padding: 10px; cursor: pointer; width: 100%; border-radius: 4px; font-size: 15px; font-weight: bold; margin-top: 15px; }
-        button:hover { background: #1565c0; }
+        /* Two-Column Side-by-Side Grid Placement */
+        .main-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .left-panel { flex: 1.1; }  /* Salary summary side */
+        .right-panel { flex: 0.9; border-left: 1px dashed #ccc; padding-left: 20px; } /* Attendance log side */
+
+        .meta-info { background: #f8f9fa; padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #eaedf1; }
+        .meta-info p { margin: 3px 0; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        table th, table td { padding: 5px 6px; border: 1px solid #ddd; text-align: left; }
+        table th { background: #f4f6f7; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+        .total-row { font-weight: bold; background: #e9ecef; font-size: 13px; }
+
+        .section-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #007bff; text-transform: uppercase; border-left: 3px solid #007bff; padding-left: 5px;}
+        
+        /* High density settings for 3-Column Attendance Table */
+        .attendance-table th, .attendance-table td { text-align: center; padding: 3px 4px; font-size: 11px; }
+        .attendance-table td:nth-child(2) { text-align: left; }
+        
+        .status-P { color: green; font-weight: bold; }
+        .status-W { color: blue; font-weight: bold; }
+        .status-A { color: red; font-weight: bold; }
+
+        .btn-print { padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;}
+        
+        /* Direct page compilation instruction for printer */
+        @media print { 
+            .btn-print { display: none; } 
+            body { margin: 0; background: none; } 
+            .invoice-box { border: none; padding: 0; max-width: 100%; } 
+            .right-panel { border-left: 1px solid #ddd; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Payroll Control Panel</h2>
-        <form action="/generate-invoice" method="POST">
-            <div class="flex-row">
-                <div class="form-group" style="flex: 2;">
-                    <label>Employee Name</label>
-                    <input type="text" name="employee_name" required placeholder="Rahul Kumar">
-                </div>
-                <div class="form-group">
-                    <label>Base Salary (Rs.)</label>
-                    <input type="number" step="0.01" name="salary" required placeholder="25000">
-                </div>
-            </div>
-            <div class="flex-row">
-                <div class="form-group">
-                    <label>Month</label>
-                    <select name="month" id="monthSelect" onchange="buildCalendar()">
-                        <option value="January">January</option><option value="February">February</option>
-                        <option value="March">March</option><option value="April">April</option>
-                        <option value="May">May</option><option value="June">June</option>
-                        <option value="July">July</option><option value="August">August</option>
-                        <option value="September">September</option><option value="October">October</option>
-                        <option value="November">November</option><option value="December">December</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Year</label>
-                    <input type="number" name="year" id="yearInput" value="2026" onchange="buildCalendar()" required>
-                </div>
-            </div>
 
-            <h3>Attendance Roster</h3>
-            <div class="calendar-grid">
-                <!-- Day Headers -->
-                <div class="grid-header">Sun</div><div class="grid-header">Mon</div><div class="grid-header">Tue</div>
-                <div class="grid-header">Wed</div><div class="grid-header">Thu</div><div class="grid-header">Fri</div>
-                <div class="grid-header">Sat</div>
-                
-                <!-- Dynamic Content Container -->
-                <div id="calendarDays" style="display: contents;"></div>
-            </div>
-
-            <button type="submit">Compile & Generate Invoice</button>
-        </form>
+<div class="invoice-box">
+    <!-- Top Action bar component -->
+    <div class="header-row">
+        <div class="title">Attendance & Payroll Statement</div>
+        <button class="btn-print" onclick="window.print()">Print Report</button>
     </div>
+    
+    <!-- Main Side-by-Side Framework -->
+    <div class="main-layout">
+        
+        <!-- LEFT PANEL: Summary Data Metrics -->
+        <div class="left-panel">
+            <div class="section-title">Employee Details</div>
+            <div class="meta-info">
+                <p><strong>Employee Name:</strong> {{ invoice.employee_name }}</p>
+                <p><strong>Pay Period:</strong> {{ invoice.period }}</p>
+                <p><strong>Invoice Date:</strong> {{ invoice.invoice_date }}</p>
+            </div>
+            
+            <div class="section-title">Description Summary</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Breakdown Metric</th>
+                        <th style="text-align: right;">Value / Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Total Calendar Days</td><td style="text-align: right;">{{ invoice.total_days }} Days</td></tr>
+                    <tr><td>Allocated Week-offs (W)</td><td style="text-align: right;">{{ invoice.weekoffs }} Days</td></tr>
+                    <tr><td>Total Day Shift</td><td style="text-align: right;">{{ invoice.total_day_shift }} Days</td></tr>
+                    <tr><td>Total Night Shift</td><td style="text-align: right;">{{ invoice.total_night_shift }} Nights</td></tr>
+                    <tr><td>Total Double Shift</td><td style="text-align: right;">{{ invoice.total_double_shift }} *Day/Nights</td></tr>
+                    <tr><td>Unpaid Absence / Leaves (A)</td><td style="text-align: right; color: red;">- {{ invoice.leaves }} Days</td></tr>
+                    <tr><td><strong>Total Payable Days</strong></td><td style="text-align: right;"><strong>{{ invoice.payable_days }} Days</strong></td></tr>
+                    <tr><td>Base Monthly Salary</td><td style="text-align: right;">Rs.{{ invoice.base_salary }}</td></tr>
+                    <tr class="total-row">
+                        <td>Net Take-Home Payout</td>
+                        <td style="text-align: right; color: #007bff;">Rs.{{ invoice.final_salary }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 50px; font-size: 11px; color: #666; font-style: italic;">
+                * This is a computer-generated summary sheet and does not require a physical stamp.
+            </div>
+        </div>
+        
+        <!-- RIGHT PANEL: 3-Column Flat List -->
+        <div class="right-panel">
+            <div class="section-title">Monthly Attendance Log</div>
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Sr. No.</th>
+                        <th style="width: 35%;">Date</th>
+                        <th style="width: 65%;">Shifts (Day/Night/Double)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in invoice.attendance %}
+                    <tr>
+                        <td>{{ "%02d" | format(day.sr_no) }}</td>
+                        <td>Day {{ "%02d" | format(day.sr_no) }}</td>
+                        <td>
+                            {% if day.status == 'DS' %}
+                                <span class="status-P">Day Shift</span>
+                            {% elif day.status == 'NS' %}
+                                <span class="status-P">Night Shift</span>
+                            {% elif day.status == 'BS' %}
+                                <span class="status-P">Double Shift</span>
+                            {% elif day.status == 'W' %}
+                                <span class="status-W">W</span>
+                            {% else %}
+                                <span class="status-A">Absent</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+    </div>
+</div>
 
-    <script>
-        function buildCalendar() {
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            const monthStr = document.getElementById('monthSelect').value;
-            const year = parseInt(document.getElementById('yearInput').value);
-            const monthIdx = months.indexOf(monthStr);
-
-            const totalDays = new Date(year, monthIdx + 1, 0).getDate();
-            const firstDayIndex = new Date(year, monthIdx, 1).getDay(); // Day of the week index (0-6)
-
-            const targetContainer = document.getElementById('calendarDays');
-            targetContainer.innerHTML = '';
-
-            // Add blank pads for empty week starts
-            for (let i = 0; i < firstDayIndex; i++) {
-                const blank = document.createElement('div');
-                blank.className = 'day-box';
-                blank.style.background = '#e0e0e0';
-                blank.style.border = 'none';
-                targetContainer.appendChild(blank);
-            }
-
-            // Create interactive functional days
-            for (let day = 1; day <= totalDays; day++) {
-                const currentDayOfWeek = (firstDayIndex + day - 1) % 7;
-                const dayCard = document.createElement('div');
-                dayCard.className = 'day-box';
-                
-                // Pre-detect weekend offsets dynamically (Default to W for Sundays)
-                let defaultSelection = "DS";
-                if(currentDayOfWeek === 0) { 
-                    defaultSelection = "W"; 
-                    dayCard.style.background = "#e3f2fd";
-                }
-
-                dayCard.innerHTML = `
-                    <span class="day-label">${day}</span>
-                    <select name="status_${day}">
-                        <option value="DS" ${defaultSelection==='DS'?'selected':''}>Day Shift</option>
-                        <option value="NS" ${defaultSelection==='NS'?'selected':''}>Night Shift</option>
-                        <option value="BS" ${defaultSelection==='BS'?'selected':''}>Double</option>
-                        <option value="A" ${defaultSelection==='A'?'selected':''}>A</option>
-                        <option value="W" ${defaultSelection==='W'?'selected':''}>W</option>
-                    </select>
-                `;
-                targetContainer.appendChild(dayCard);
-            }
-        }
-        window.onload = buildCalendar;
-    </script>
 </body>
-</html>
-  
+    </html>
